@@ -3,6 +3,7 @@
 	<name>weScrabble</name>
 	<comment></comment>
 	<projects>
+		<project>android-core</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>

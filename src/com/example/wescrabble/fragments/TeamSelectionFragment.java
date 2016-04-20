@@ -1,6 +1,6 @@
 package com.example.wescrabble.fragments;
 
-import com.example.wescrabble.MainActivity;
+import com.example.wescrabble.WeScrabble;
 import com.example.wescrabble.R;
 import com.example.wescrabble.R.id;
 import com.example.wescrabble.R.layout;
@@ -15,6 +15,8 @@ import android.widget.Button;
 
 public class TeamSelectionFragment extends Fragment{
 	
+	private int mTeamId;
+	
 	public TeamSelectionFragment() {}
 	
 	@Override
@@ -22,13 +24,16 @@ public class TeamSelectionFragment extends Fragment{
 		Bundle savedInstanceState) {
 		
 		View returnView = inflater.inflate(R.layout.fragment_team_selection, container, false);
-		final MainActivity mMainActivity = (MainActivity) this.getActivity();
+		final WeScrabble mMainActivity = (WeScrabble) this.getActivity();
 		
 		Button firstTeamButton = (Button) returnView.findViewById(R.id.button1);
 		firstTeamButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				mMainActivity.teamID = 0;
+				mTeamId = 0;
+				GamePlayFragment gamePlayFragment = new GamePlayFragment(mTeamId);
+				mMainActivity.getFragmentManager().beginTransaction()
+					.replace(R.id.fragment_container, gamePlayFragment).addToBackStack(null).commit();
 			}
 		});
 		
@@ -36,8 +41,8 @@ public class TeamSelectionFragment extends Fragment{
 		secondTeamButton.setOnClickListener(new OnClickListener() {
 			@Override
 			public void onClick(View v) {
-				mMainActivity.teamID = 1;
-				GamePlayFragment gamePlayFragment = new GamePlayFragment();
+				mTeamId = 1;
+				GamePlayFragment gamePlayFragment = new GamePlayFragment(mTeamId);
 				mMainActivity.getFragmentManager().beginTransaction()
 					.replace(R.id.fragment_container, gamePlayFragment).addToBackStack(null).commit();
 			}

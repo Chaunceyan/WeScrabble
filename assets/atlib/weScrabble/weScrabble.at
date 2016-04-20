@@ -1,0 +1,229 @@
+deftype Partner;
+import /.at.lang.futures;
+enableFutures(false);
+def dict := ~.dictionary;
+
+def log(text) {
+  Android.Log.d("weScrabble", text);
+};
+
+def makeWeScrabble (myUserId := /.at.support.util.randomNumberBetween(0, 125)) {
+	
+	def partners := jlobby.java.util.HashMap.new();
+	def partners.each: closure {
+		def iterator := partners.values().iterator();
+		while: {iterator.hasNext()} do: {
+			closure(iterator.next());
+		};
+	};
+	def opposites := jlobby.java.util.HashMap.new();
+	def opposites.each: closure {
+		def iterator := partners.values().iterator();
+		while: {iterator.hasNext()} do: {
+			closure(iterator.next());
+		};
+	};
+	def gui;
+	def pub;
+	
+	def lettersLists := jlobby.java.util.HashMap.new();
+	def lettersLists.each: closure {
+		def iterator := lettersList.values().iterator();
+		while: {iterator.hasNext()} do: {
+			closure(iterator.next());
+		};
+	};
+	
+	def localInterface := object: {
+	
+		def showMessage(text) {
+			def msg := <-showMessage(text);
+			partners.each: { |p| 
+				p<+msg;
+			};
+		};
+		
+		def submitWord(word) {
+			if: (dict.findWord: word) 
+			then: {
+				gui.showMessage("Success" + word.explode().select(1, (word.length()/2).round()));
+				gui.removeWord();
+				if: (opposites.isEmpty()) then: {} else: {
+					def index := 1;
+					while: {index <= (word.length/2).round()} do: {
+						opposites.values().toArray()[(1??(opposites.size())).round()] <- addLetter(word.explode()[index]);
+						index := index + 1;
+					};
+				};
+				gui.completeCheck();
+			} else: {
+				gui.showMessage(word + " is not a word. Learn English Dude!!!");
+			};
+		};
+		
+		def removePartnerLetter(letter) {
+			def msg := <-removePartnerLetter(myUserId, letter);
+			partners.each: { |p| 
+				p<+msg;
+			};
+		};
+		
+		def addPartnerLetter(letter) {
+			def msg := <-addPartnerLetter(myUserId, letter);
+			partners.each: { |p|
+				p<+msg;
+			};
+		};
+		
+		def requestLetter(id, letter) {
+			partners.get(id)<-requestLetter(myUserId, letter);
+		};	
+		
+		def acceptRequest(id, letter) {
+			partners.get(id)<-addLetter(letter);
+			partners.each: { |p|
+				p <- removePartnerLetter(myUserId, letter);
+			};
+		};
+		
+		def rejectRequest(id) {
+			partners.get(id)<-showMessage("Letter Request Rejected");
+		};
+		
+		def throwLetters(letters) {
+			def iterator := letters.iterator();
+			while: {iterator.hasNext()} do: {
+				def letter := iterator.next();
+			};
+		};
+		
+		def handshake(newGui) {
+			gui := newGui;
+		};
+		
+		def disconnect() {
+			pub := disconnect: remoteInterface;
+		};
+		
+		def reconnect() {
+			pub.reconnect();
+		};	
+		
+		def finishGame() {
+			opposites.each: { |p|
+				p <- loseGame()
+			};
+			partners.each: { |p|
+				p <- winGame();
+			};
+			network.offline();
+		};
+	
+	};
+	
+	def remoteInterface := object: {
+	
+		def getUserId() {
+			myUserId;
+		};
+	
+		def showMessage(msg) {
+			gui.showMessage(msg);
+		};
+		
+		def getTeam() {
+			gui.getTeam();
+		};
+		
+		def getLetterList() {
+			gui.getLetterList();
+		};
+		
+		def addLetter(letter) {
+			gui.addLetter(letter);
+			partners.each: {|p|
+				p <- addPartnerLetter(myUserId, letter);
+			};
+		};
+		
+		def removePartnerLetter(userId, letter) {
+			gui.removePartnerLetter(userId, letter);
+		};
+		
+		def addPartnerLetter(userId, letter) {
+			gui.addPartnerLetter(userId, letter);
+		};
+		
+		def requestLetter(userId, letter) {
+			gui.requestLetter(userId, letter);
+		};
+		
+		def removeOpposite(userId) {
+			opposites.remove(userId);
+			if: (opposites.isEmpty()) then: {
+				gui.loose();
+			};
+		}; 
+		
+		def removePartner(userId) {
+			gui.removePartner(userId);
+			gui.updatePartners();
+			partners.remove(userId);
+		};
+		
+		def loseGame() {
+			gui.loseGame();
+		};
+		
+		def winGame() {
+			gui.winGame();
+		};
+	};	
+	
+	def discoveredPartnerSection(ref) {
+		def knownUser := partners.containsValue(ref);
+		if: (!knownUser) then: {
+			when: ref<-getTeam()@FutureMessage becomes: { |team|
+				if: (team == gui.getTeam()) then: {
+					when: ref<-getUserId()@FutureMessage becomes: { |id|
+							partners.put(id, ref);
+						when: ref<-getLetterList()@FutureMessage becomes: { |letterList|
+							gui.showPartner(id, letterList);
+							gui.updatePartners();
+						};
+						whenever: ref disconnected: {
+							log("Other partner disconnected: " + id + " : " + ref);
+						};
+						whenever: ref reconnected: {
+							log("Other partner reconnected: " + id + " : " + ref);
+							when: ref<-getLetterList()@FutureMessage becomes: { |letterList|
+								gui.removePartner(id);
+								gui.showPartner(id, letterList);
+								gui.updatePartners();
+							};
+						};
+					};
+				} else: {
+					when: ref<-getUserId()@FutureMessage becomes: { |id|
+						opposites.put(id, ref);
+					};
+				};
+			};
+		};
+	};	
+	
+	def goOnline() {
+		export: remoteInterface as: Partner;
+		whenever: Partner discovered: { |ref|
+			log("Discovered other partner" + ref);
+			ref<-showMessage("Find a player."); 
+			discoveredPartnerSection(ref);
+		}
+	};
+	
+	gui := Android.parent.registerATApp(localInterface);
+	goOnline();
+};
+
+network.online;
+self

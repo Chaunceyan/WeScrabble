@@ -1,24 +1,30 @@
 package com.example.wescrabble.utils;
 
 import com.example.wescrabble.R;
+
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.AttributeSet;
 import android.view.View;
+import at.weScrabble.interfaces.JMyLetter;
 
 
-public class MyCharacter {
+public class MyLetter implements JMyLetter {
 
 	private Integer mBitmapDrawable;
 	private char mChar;
 	
-	public MyCharacter (Integer index) {
+	public MyLetter (Integer index) {
 		mBitmapDrawable = resources[index];
 		mChar = (char) (index + 'a');
 	}
 
 	public Integer getBitmapDrawable () {
 		return mBitmapDrawable;
+	}
+	
+	public char getChar() {
+		return mChar;
 	}
 	
 	private Integer[] resources = {
@@ -36,4 +42,9 @@ public class MyCharacter {
 			R.drawable.w, R.drawable.x,
 			R.drawable.y, R.drawable.z
 	};
+
+	public MyLetter asMyLetter() {
+		// TODO Auto-generated method stub
+		return this;
+	}
 }
